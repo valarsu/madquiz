@@ -1,0 +1,375 @@
+<style lang="less">
+.ques-wrap {
+  position: absolute;
+  height: 720rpx;
+  width: 88%;
+  bottom: 128rpx;
+  /* background: #76d5ff; */
+  text-align: center;
+  color: #fff;
+  .ques-type {
+    background: rgba(255, 255, 255, .2);
+    width: auto;
+    display: inline;
+    font-size: 32rpx;
+    line-height: 32rpx;
+    padding: 16rpx 32rpx;
+    border-radius: 8rpx;
+  }
+}
+.isShow {
+  display: block;
+}
+
+.isHidden {
+  display: none;
+}
+</style>
+<template>
+  <view class="ques-wrap"
+  wx:for="{{questions}}"
+  wx:key="{{questions.id}}"
+  wx:for-item="items"
+  wx:for-index="idxs"
+  wx:if="{{idxs === current}}"
+  >
+  <view class="ques-type">{{idxs + 1}}、{{ items.type }}</view>
+  <view class="ques-content">
+    <view>{{ items.content }}</view>
+  </view>
+  <view class="ques-options">
+    <block
+    wx:for="{{items.options}}"
+    wx:key="{{items.index}}"
+    wx:for-index="idx"
+    wx:for-item="item"
+    >
+    <view class="{{arr[idx] === 0 ? 'isShow' : 'isHidden'}}" style="position: relative;">
+      <button id="2" @tap="nextQuestion({{item.answer}}, {{idx}}, {{idxs}}, 'self')" class="button {{option[idx] ? 'press' : ''}} {{option[idx] ? (item.answer ? 'true' : 'false') : ''}}" type="button" name="button">
+        {{item.content}}
+      </button>
+    </view>
+    <view class="{{arr[idx] === 1 ? 'isShow' : 'isHidden'}}" style="position: relative;">
+      <button id="2" class="button {{option[idx] ? 'press' : ''}} {{option[idx] ? (item.answer ? 'true' : 'false') : ''}}" type="button" name="button">
+        {{item.content}}
+      </button>
+      <view style="position: absolute;z-index: 2;top: 14px;left: 10px;display: inline-block;" class="sign sign-left">{{ signLeft[idx] }}</view>
+    </view>
+    <view class="{{arr[idx] === 2 ? 'isShow' : 'isHidden'}}" style="position: relative;">
+      <button id="2" class="button {{option[idx] ? 'press' : ''}} {{option[idx] ? (item.answer ? 'true' : 'false') : ''}}" type="button" name="button" >
+        {{item.content}}
+      </button>
+      <view style="position: absolute;z-index: 2;top: 14px;right: 10px;display: inline-block;" class="sign sign-right">{{ signRight[idx] }}</view>
+    </view>
+    <view class="{{arr[idx] === 3 ? 'isShow' : 'isHidden'}}" style="position: relative;">
+      <button id="2" class="button {{option[idx] ? 'press' : ''}} {{option[idx] ? (item.answer ? 'true' : 'false') : ''}}" type="button" name="button" >
+        {{item.content}}
+      </button>
+      <view style="position: absolute;z-index: 2;top: 14px;left: 10px;display: inline-block;" class="sign sign-left">{{ signLeft[idx] }}</view>
+      <view style="position: absolute;z-index: 2;top: 14px;right: 10px;display: inline-block;" class="sign sign-right">{{ signRight[idx] }}</view>
+    </view>
+  </block>
+</view>
+</view>
+</template>
+<script>
+  import wepy from 'wepy'
+
+  export default class Questions extends wepy.component {
+    data = {
+      loginData: null,
+      oldTime: 0,
+      abcd: ['A', 'B', 'C', 'D'],
+      dcba: {'A': 0, 'B': 1, 'C': 2, 'D': 3},
+      signLeft: ['O', 'O', 'O', 'O'],
+      signRight: ['O', 'O', 'O', 'O'],
+      isSelf: false,
+      isOppo: false,
+      testo: 0,
+      arr: [0, 0, 0, 0],
+      idx1: 0,
+      idx2: 0,
+      answer1: false,
+      answer2: true,
+      isClick: true
+    }
+
+    props = {
+      questions: {
+        type: Array,
+        default: [],
+        twoWay: true
+      },
+      option: {
+        type: Array,
+        default: [],
+        twoWay: true
+      },
+      order: {
+        type: Array,
+        default: [],
+        twoWay: true
+      },
+      current: {
+        type: Number,
+        default: 0,
+        twoWay: true
+      },
+      nextCon: {
+        type: String,
+        default: 0,
+        twoWay: true
+      },
+      points: {
+        type: Number,
+        default: 0,
+        twoWay: true
+      },
+      oppoPoints: {
+        type: Number,
+        default: 0,
+        twoWay: true
+      },
+      result: {
+        type: Number,
+        default: 0,
+        twoWay: true
+      },
+      socketOpen: {
+        type: Boolean,
+        default: true,
+        twoWay: true
+      },
+      socketMsgQueue: {
+        type: Array,
+        default: [],
+        twoWay: true
+      },
+      interval: {
+        type: Object,
+        default: [],
+        twoWay: true
+      },
+      realTime: {
+        type: Boolean,
+        default: false
+      },
+      oppoAnswers: {
+        type: String,
+        default: ''
+      },
+      danId: {
+        type: Number,
+        default: 0
+      },
+      countDown: {
+        type: Number,
+        default: 0
+      }
+    }
+
+    watch = {
+      questions (newValue, oldValue) {
+        console.log(`问题来了 value: ${oldValue} -> ${newValue}`)
+      },
+      oppoAnswers (newValue, oldValue) {
+        this.oppoAnswers = JSON.parse(newValue)
+        console.log(this.oppoAnswers)
+      },
+      current (newValue, oldValue) {
+        const that = this
+        console.log(that.realTime)
+        if (!that.realTime) {
+          let item = that.oppoAnswers[newValue]
+          console.log(1)
+          console.log(that.oppoAnswers)
+          if (newValue < 5) {
+            console.log(`当前第${+newValue + 1}题`)
+            that.disposeOppo(item)
+          } else {
+            clearInterval(that.interval)
+          }
+        }
+      },
+      result (newValue, oldValue) {
+        const that = this
+        if (newValue === 1) {
+          console.log('开始答题')
+          that.oldTime = that.getTimes()
+        }
+      },
+      oppoPoints (newValue, oldValue) {
+        // this.pointChange(newValue, oldValue, 'oppo')
+        console.log('对方有变化')
+      }
+    }
+
+    methods = {
+      nextQuestion (answer, idx, idxs, isSelf) {
+        const that = this
+        console.log('调用点击')
+        if (that.isClick) {
+          that.nextQuestions(answer, idx, idxs, isSelf)
+        }
+      }
+    }
+
+    disposeOppo (item) {
+      const that = this
+      this.testo ++
+      console.log(`时间: ${item.time}`)
+      if (item.time >= 10000) {
+        return false
+      }
+      setTimeout(() => {
+        console.log(item)
+        that.oppoPoints += item.score * 1
+        if (item.score === 0) {
+          that.nextQuestions(false, that.dcba[item.choice], that.current, 'oppo')
+        } else {
+          that.nextQuestions(true, that.dcba[item.choice], that.current, 'oppo')
+        }
+      }, item.time)
+      that.$apply()
+    }
+    nextQuestions (answer, idx, idxs, isSelf) {
+      const that = this
+      console.log(idxs, idx, isSelf, '调用')
+      that.nextCon += isSelf
+      console.log(that.nextCon) // 切换到下一题的条件
+      that.order[idxs] = true // 显示对应题目
+      if (isSelf === 'self') {
+        that.isClick = false
+        that.idx1 = idx
+        that.answer1 = answer
+        that.option[that.idx1] = true // 显示相应的点击选项
+        console.log(isSelf)
+        that.signLeft[that.idx1] = that.answer1 ? 'O' : 'X'
+        that.arr[that.idx1] = 1
+      }
+      if (isSelf === 'oppo') {
+        that.idx2 = idx
+        that.answer2 = answer
+      }
+      // that.$apply()
+      console.log('asd')
+      that.calcPoint(that.oldTime, answer, that.abcd[idx], isSelf)
+      if (isSelf === 'self') {
+        that.order[idxs] = true // 显示对应题目
+        that.option[idx] = true // 显示相应的点击选项
+      }
+      // 双方都点击选项才能切换到下一题
+      if (that.nextCon !== 'selfoppo' && that.nextCon !== 'oppoself') {
+        return false
+      } else {
+        setTimeout(function() {
+          that.option[that.idx2] = true // 显示相应的点击选项
+          console.log(isSelf)
+          that.signRight[that.idx2] = that.answer2 ? 'O' : 'X'
+          if (that.answer2 && that.answer1) {
+            that.arr[that.idx2] = 3
+          } else {
+            that.arr[that.idx2] = 2
+          }
+          that.$apply()
+        }, 500)
+      }
+      clearInterval(that.interval)
+      console.log('可以调用下一题了')
+
+      setTimeout(function () {
+        if (that.current < 5) {
+          that.current ++
+          that.arr = [0, 0, 0, 0]
+          that.nextCon = ''
+          that.isClick = true
+          that.oldTime = that.getTimes()
+          that.option = [false, false, false, false]
+          that.$apply()
+        } else {
+          that.result = 2
+          that.$apply()
+        }
+      }, 2000)
+    }
+    calcPoint (oldTime, answer, choice, isSelf) {
+      const that = this
+      const newTime = that.getTimes()
+      let differ = newTime - oldTime
+      if (isSelf === 'oppo') {
+        return false
+      }
+      that.answering(choice, differ)
+    }
+    getTimes () {
+      return new Date().getTime()
+    }
+    answering (answer, time) {
+      const that = this
+      if (!answer && time >= 10000) {
+        answer = ''
+        time = 10000
+      }
+      that.answerInfo = {
+        token: that.loginData.token,
+        user_id: that.loginData.id,
+        type: 'dati',
+        duan_id: that.danId,
+        answer: answer,
+        time: time
+      }
+      that.socketMsgQueue.push(that.answerInfo)
+      that.$parent.sendMessage()
+      wepy.onSocketMessage((res) => {
+        let item = JSON.parse(res.data)
+        if (item.code === '1') {
+          if (item.ismyself) {
+            that.points += item.score
+          } else {
+            let idxs = that.current
+            let idx = that.dcba[item.choice]
+            let answer = item.is_true
+            // 分数累加
+            that.oppoPoints += item.score
+            that.$apply()
+            that.nextQuestions(answer, idx, idxs, 'oppo')
+            that.$apply()
+          }
+        }
+      })
+    }
+    quitQuestion () {
+      const that = this
+      let quitInfo = {
+        token: that.loginData.token,
+        user_id: that.loginData.id,
+        type: 'quit',
+        duan_id: that.danId
+      }
+      console.log(`玩家退出答题了`)
+      that.socketMsgQueue.push(quitInfo)
+      that.$parent.sendMessage()
+      wepy.onSocketMessage((res) => {
+        console.log(res)
+        console.log(`玩家退出答题了`)
+      })
+    }
+    onLoad () {
+      const that = this
+      that.loginData = that.$root.$parent.globalData.loginData
+      console.log(that.loginData)
+    }
+    // onHide(e) {
+    //   const that = this
+    //   clearInterval(that.interval)
+    //   console.log(1111)
+    //   that.quitQuestion()
+    // }
+    // onUnload(e) {
+    //   const that = this
+    //   clearInterval(that.interval)
+    //   console.log(2222)
+    //   that.quitQuestion()
+    // }
+  }
+</script>

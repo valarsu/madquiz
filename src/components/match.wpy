@@ -1,0 +1,165 @@
+<style lang="less">
+.vs image {
+  width: 100px;
+  height: 100px;
+  display: block;
+  border-radius: 50px;
+}
+
+.vs {
+  width: 300px;
+}
+.my-img {
+  margin-top: 100px;
+}
+.vs-img {
+  margin-left: 100px;
+  width: 100px;
+}
+
+.user-img {
+  transition:margin-left 0.5s;
+  -moz-transition:margin-left 0.5s; /* Firefox 4 */
+  -webkit-transition:margin-left 0.5s; /* Safari and Chrome */
+  -o-transition:margin-left 0.5s; /* Opera */
+}
+.match {
+  height:500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+</style>
+<template>
+  <view class="match">
+    <view style="text-align:center">匹配对决</view>
+    <view class="vs">
+      <image class="my-img" src="{{myInfo.avatarUrl}}"></image>
+      <view class="vs-img">
+        <image src="../static/imgs/vs.png"></image>
+        <span style="text-align:center;display:block">{{matchMsg}}</span>
+      </view>
+      <image class="user-img" style="margin-left: {{marginLeft}}" src="{{userInfo.avatar}}"></image>
+    </view>
+  </view>
+<!--   <view></view>
+  <view>{{result}}</view> -->
+</template>
+<script>
+import wepy from 'wepy'
+
+export default class Match extends wepy.component {
+  data = {
+    userInfo: null,
+    matchInfo: null,
+    myInfo: null,
+    marginLeft: '400px'
+  }
+
+  props = {
+    points: {
+      type: Number,
+      default: 0
+    },
+    danId: {
+      type: Number,
+      default: 0
+    },
+    matchMsg: {
+      type: String,
+      default: '等待中...',
+      twoWay: true
+    },
+    result: {
+      type: Number,
+      default: 0,
+      twoWay: true
+    },
+    questions: {
+      type: Array,
+      default: [],
+      twoWay: true
+    },
+    socketOpen: {
+      type: Boolean,
+      default: true,
+      twoWay: true
+    },
+    socketMsgQueue: {
+      type: Array,
+      default: [],
+      twoWay: true
+    },
+    oppoInfo: {
+      type: String,
+      default: {},
+      twoWay: true
+    },
+    realTime: {
+      type: Boolean,
+      default: {},
+      twoWay: true
+    },
+    oppoAnswers: {
+      type: String,
+      default: {},
+      twoWay: true
+    }
+  }
+
+  watch = {
+    danId (newValue, oldValue) {
+      this.getOpponent(newValue)
+    }
+  }
+
+  methods = {
+  }
+
+  getOpponent (danId) {
+    const that = this
+    that.matchInfo = {
+      token: that.loginData.token,
+      user_id: that.loginData.id,
+      type: 'pipei',
+      duan_id: danId
+    }
+    that.socketMsgQueue.push(that.matchInfo)
+    that.$parent.socketHandle('wss://dati.kelong.cn.com/wss/', (res) => {
+      let item = JSON.parse(res.data)
+      console.log(item.data.questions)
+      console.log('是否响应了？')
+      console.log(item.data.to_user.info)
+      if (item.code === '1' && item.data) {
+        that.userInfo = item.data.to_user.info
+        that.matchMsg = `匹配成功`
+        that.questions = item.data.questions
+
+        that.oppoInfo = JSON.stringify(item.data.to_user.info)
+        that.realTime = !!item.data.isshishi
+        if (item.data.to_user.answers) {
+          that.oppoAnswers = JSON.stringify(item.data.to_user.answers)
+        }
+        that.$apply()
+        setTimeout(() => {
+          that.marginLeft = '200px'
+          that.$apply()
+        }, 300)
+        setTimeout(() => {
+          that.result = 1
+          that.$apply()
+        }, 2000)
+      } else {
+        console.log(item.msg)
+      }
+    })
+  }
+
+  onLoad () {
+    const that = this
+    that.loginData = that.$root.$parent.globalData.loginData
+    that.myInfo = that.$root.$parent.globalData.userInfo
+    console.log(that.myInfo)
+  }
+}
+</script>

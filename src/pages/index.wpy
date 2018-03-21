@@ -1,0 +1,146 @@
+<style lang="less">
+  .container {
+    height: 100%;
+    display: block;
+    text-align: center;
+    background: #76d5ff;
+    font-size: 32rpx;
+    color: #fff;
+  }
+  .user-info {
+    font-size: 28rpx;
+    padding-top: 32rpx;
+  }
+  .user-avatar {
+    width: 128rpx;
+    height: 128rpx;
+    border-radius: 50%;
+    border: 8rpx solid #fff;
+  }
+  .menu {
+    margin: 0 auto;
+    padding-top: 96rpx;
+  }
+  .menu-item {
+    width: 84%;
+    height: 96rpx;
+    text-align: left;
+    margin: 32rpx auto 0;
+    box-sizing: border-box;
+    padding: 0 32rpx;
+    line-height: 96rpx;
+    border-radius: 4rpx;
+    background: #fff;
+    color: #333;
+    navigator {
+      display: flex;
+      justify-content: space-between;
+    }
+  }
+  .right-arrow {
+    width: 32rpx;
+    height: 32rpx;
+    margin-top: 32rpx;
+  }
+  .total-number {
+    position: absolute;
+    bottom: 32rpx;
+    left: 50%;
+    transform: translate(-50%);
+  }
+  .navigator-hover {
+    background-color: #fff;
+    opacity: 1;
+  }
+</style>
+<template>
+  <view class="container">
+    <view class="h1">房产知识老司机</view>
+    <view class="user-info">
+      <image class="user-avatar" wx:if="{{userInfo.avatarUrl}}" src="{{ userInfo.avatarUrl }}" alt="用户头像" background-size="cover" />
+      <view>{{ userInfo.nickName }}</view>
+      <view>{{ userInfo.province }}Ⅰ{{ userInfo.city }}</view>
+    </view>
+    <view class="menu">
+      <view class="menu-item">
+        <navigator url="/pages/danList" class="to-quiz">
+          <view>排位赛</view>
+          <image class="right-arrow" src="../static/imgs/right.png" alt="右箭头" background-size="cover" />
+        </navigator>
+      </view>
+      <view class="menu-item">
+        <navigator url="/pages/ranking" class="to-quiz">
+          <view>排行榜</view>
+          <image class="right-arrow" src="../static/imgs/right.png" alt="右箭头" background-size="cover" />
+        </navigator>
+      </view>
+      <view class="menu-item">
+        <navigator url="/pages/newQuestion" class="to-quiz">
+          <view>去出题</view>
+          <image class="right-arrow" src="../static/imgs/right.png" alt="右箭头" background-size="cover" />
+        </navigator>
+      </view>
+      <view class="menu-item">
+        <navigator url="/pages/myQuestion" class="to-quiz">
+          <view>我的题</view>
+          <image class="right-arrow" src="../static/imgs/right.png" alt="右箭头" background-size="cover" />
+        </navigator>
+      </view>
+    </view>
+    <view class="total-number">
+      当前参与游戏人数：{{totalNumbers}}
+    </view>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  export default class Index extends wepy.page {
+    config = {
+      navigationBarTitleText: '房产知识老司机'
+    }
+
+    data = {
+      totalNumbers: 0,
+      userInfo: {},
+      loginData: {}
+    }
+
+    computed = {
+    }
+
+    methods = {
+    }
+
+    events = {
+    }
+
+    watch = {
+    }
+
+    getNumbers() {
+      const that = this
+      wepy.showLoading({title: '加载中'})
+      wepy.request({
+        url: `${this.$parent.globalData.domain}/api/index/index`,
+        method: 'POST',
+        success: (res) => {
+          wepy.hideLoading()
+          if (res.data.code) {
+            that.totalNumbers = res.data.data.userCount
+          } else {
+            that.$root.$parent.toast(res.data.msg, 1000)
+          }
+          that.$apply()
+        }
+      })
+    }
+
+    onLoad() {
+      const that = this
+      that.getNumbers()
+      that.userInfo = that.$parent.globalData.userInfo
+      that.loginData = that.$parent.globalData.loginData
+    }
+  }
+</script>

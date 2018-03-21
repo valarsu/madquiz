@@ -1,0 +1,244 @@
+<style lang="less">
+  .container {
+    background: rgb(118, 213, 255);
+    height: auto;
+    padding-bottom: 48rpx;
+  }
+  .rank-wrap {
+    width: 100%;
+    font-size: 24rpx;
+    color: #fff;
+  }
+  .weui-cells__title {
+    padding: 0 36rpx;
+    margin-bottom: 16rpx;
+  }
+  .weui-cells {
+    width: 100%;
+    background: #fff;
+    line-height: 88rpx;
+    color: #333;
+    font-size: 32rpx;
+    margin-bottom: 16rpx;
+  }
+  .weui-cell_input {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 36rpx;
+    .weui-left {
+      flex: 2;
+    }
+    .weui-right {
+      flex: 7;
+      padding-left: 24rpx;
+    }
+    .weui-input {
+      height: 44px;
+    }
+  }
+  .button {
+    width: 80%;
+    height: 88rpx;
+    background: #FF5252;
+    color: #fff;
+    font-size: 32rpx;
+    margin: 0 auto;
+    line-height: 88rpx;
+    text-align: center;
+    border-radius: 8rpx;
+    margin-top: 24rpx;
+    box-shadow: 0 0 4rpx 4rpx rgba(0, 0, 0, .1);
+  }
+
+</style>
+<template>
+  <view class="container">
+    <view class="rank-wrap">
+      <div class="form-item">
+        <view class="weui-cells__title">请选择题目类型</view>
+        <view class="weui-cells weui-cells_after-title">
+          <view class="weui-cell weui-cell_input">
+            <view class="weui-cell__hd weui-left">
+              <view class="weui-label">当前选择</view>
+            </view>
+            <view class="weui-cell__bd weui-right">
+              <picker bindchange="bindTypeChange" value="{{typeIndex}}" range="{{typeList}}">
+                <view class="weui-input">{{typeList[typeIndex]}}</view>
+              </picker>
+            </view>
+          </view>
+        </view>
+      </div>
+      <div class="form-item">
+        <view class="weui-cells__title">请输入题干</view>
+        <view class="weui-cells weui-cells_after-title">
+          <view class="weui-cell weui-cell_input">
+            <view class="weui-cell__hd weui-left">
+              <view class="weui-label">题干内容</view>
+            </view>
+            <view class="weui-cell__bd weui-right">
+              <input class="weui-input"  maxlength="20" bindinput="handleInput" data-key="subject" placeholder="请输入题干"/>
+            </view>
+          </view>
+        </view>
+      </div>
+      <div class="form-item" wx:for="{{options}}" wx:key="{{index}}">
+        <view class="weui-cells__title">请输入选项{{options[index].key}}</view>
+        <view class="weui-cells weui-cells_after-title">
+          <view class="weui-cell weui-cell_input">
+            <view class="weui-cell__hd weui-left">
+              <view class="weui-label">{{options[index].key}}选项</view>
+            </view>
+            <view class="weui-cell__bd weui-right">
+              <input class="weui-input"  maxlength="20" bindinput="handleInput" data-key="{{index}}" placeholder="请输入选项{{options[index].key}}"/>
+            </view>
+          </view>
+        </view>
+      </div>
+      <div class="form-item">
+        <view class="weui-cells__title">请选择正确答案</view>
+        <view class="weui-cells weui-cells_after-title">
+          <view class="weui-cell weui-cell_input">
+            <view class="weui-cell__hd weui-left">
+              <view class="weui-label">当前选择</view>
+            </view>
+            <view class="weui-cell__bd weui-right">
+              <picker bindchange="bindTrueChange" value="{{typeIndex}}" range="{{trueList}}">
+                <view class="weui-input">{{trueList[trueIndex]}}</view>
+              </picker>
+            </view>
+          </view>
+        </view>
+      </div>
+      <view class="button" @tap="submitQuestion()">提交题目</view>
+    </view>
+  </view>
+</template>
+<script>
+  import wepy from 'wepy'
+
+  export default class NewQuestion extends wepy.page {
+    config = {
+      navigationBarTitleText: '我来出题'
+    }
+
+    data = {
+      subject: '',
+      options: [{
+        'key': 'A',
+        'value': ''
+      }, {
+        'key': 'B',
+        'value': ''
+      }, {
+        'key': 'C',
+        'value': ''
+      }, {
+        'key': 'D',
+        'value': ''
+      }],
+      typeList: ['地产入门', '广告大脑', '城市建筑', '政策法规', '生活常识'],
+      typeIndex: 0,
+      trueList: ['A', 'B', 'C', 'D'],
+      trueIndex: 0
+    }
+
+    watch = {
+      rankList (newValue, oldValue) {
+        console.log(newValue)
+      }
+    }
+
+    computed = {
+    }
+
+    methods = {
+      bindTypeChange: function(e) {
+        const that = this
+        that.typeIndex = e.detail.value
+        that.$apply()
+      },
+      bindTrueChange: function(e) {
+        const that = this
+        that.trueIndex = e.detail.value
+        that.$apply()
+      },
+      handleInput: function (e) {
+        const that = this
+        let val = e.detail.value
+        let idx = e.target.dataset.key
+        if (idx === 'subject') {
+          that.subject = val
+        } else {
+          that.options[idx].value = val
+        }
+        that.$apply()
+      },
+      submitQuestion: function () {
+        const that = this
+        wepy.showLoading({title: '加载中'})
+        let submitData = {
+          user_id: that.loginData.id,
+          token: that.loginData.token,
+          questiontype: that.typeList[that.typeIndex],
+          question: that.subject,
+          answer: that.trueList[that.trueIndex]
+        }
+        that.options.forEach((val, idx) => {
+          submitData[`choice${that.trueList[idx]}`] = val.value
+        })
+        for (let k in submitData) {
+          if (!submitData[k]) {
+            that.$root.$parent.toast('信息不完整', 1000)
+            return false
+          }
+        }
+        // 提交信息
+        wepy.request({
+          url: `${this.$parent.globalData.domain}/api/factory/question`,
+          method: 'POST',
+          data: submitData,
+          success: function (res) {
+            // let item = res.data.data
+            wepy.hideLoading()
+            if (res.data.code) {
+              wepy.navigateTo({
+                url: 'myQuestion'
+              })
+            } else {
+              that.$root.$parent.toast(res.data.msg, 1000)
+            }
+          }
+        })
+      }
+    }
+
+    events = {
+    }
+
+    getTypes () {
+      const that = this
+      wepy.showLoading({title: '加载中'})
+      wepy.request({
+        url: `${this.$parent.globalData.domain}/api/factory/questiontype`,
+        method: 'POST',
+        success: function (res) {
+          let item = res.data.data
+          wepy.hideLoading()
+          if (res.data.code) {
+            that.typeList = item.questiontype
+            that.$apply()
+          } else {
+            that.$root.$parent.toast(res.data.msg, 1000)
+          }
+        }
+      })
+    }
+
+    onLoad() {
+      let that = this
+      that.getTypes()
+      that.loginData = that.$parent.globalData.loginData
+    }
+  }
+</script>

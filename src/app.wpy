@@ -1,0 +1,328 @@
+<style lang="less">
+page{
+  height: 100%;
+}
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  &::after {
+    clear: both;
+  }
+}
+.h1 {
+  font-size: 48rpx;
+  padding: 32rpx;
+  text-align: center;
+}
+.stars {
+  width: 36rpx;
+  height: 36rpx;
+}
+.top-background {
+  width: 100%;
+  height: 196rpx;
+  background: #76d5ff;
+  box-shadow: 0 0 4rpx 2rpx rgba(0, 0, 0, .1);
+  position: fixed;
+  top: 0;
+  z-index: 1;
+  border-radius: 0 0 32rpx 32rpx;
+}
+.ques-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 160rpx;
+  box-sizing: border-box;
+  padding: 32rpx;
+  font-size: 32rpx;
+  overflow: hidden;
+}
+.ques-options {
+  padding: 0 32rpx;
+}
+.button {
+  margin: 24rpx auto 0;
+  height: 96rpx;
+  line-height: 96rpx;
+  text-align: center;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  position: relative;
+  border: none;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 0 32rpx rgba(0,0,0,.08);
+  &.press {
+    background: #303f9f;
+    color: #fff;
+  }
+  &.true {
+    background: #21f175;
+    color: #fff;
+  }
+  &.false {
+    background: #ff5252;
+    color: #fff;
+  }
+  .sign {
+    position: absolute;
+    font-weight: bolder;
+    color: #fff;
+    top: 0;
+  }
+  .sign-left {
+    left: 32rpx;
+  }
+  .sign-right {
+    right: 32rpx;
+  }
+}
+.rank-item {
+  width: 100%;
+  height: 160rpx;
+  background: #25a4ff;
+  border-radius: 8rpx;
+  margin-top: 24rpx;
+  box-shadow: 0 0 4rpx 4rpx rgba(0, 0, 0, .1);
+  color: #fff;
+  font-size: 24rpx;
+  padding: 0 24rpx;
+  box-sizing: border-box;
+  display: flex;
+  overflow: hidden;
+  &:first-child {
+    margin-top: 8rpx;
+  }
+}
+.avatar-right {
+  flex: 4;
+  line-height: 80rpx;
+}
+.avatar-top, .avatar-bottom {
+  display:flex;
+  justify-content:space-between;
+  height:auto;
+  line-height:40rpx;
+  padding:20rpx;
+}
+.avatar-top {
+  border-bottom: 2rpx solid #fff;
+}
+.avatar-bottom {
+  position: relative;
+}
+</style>
+
+<template>
+
+</template>
+
+<script>
+import wepy from 'wepy'
+import 'wepy-async-function'
+
+export default class extends wepy.app {
+  config = {
+    pages: [
+      'pages/index',
+      'pages/quiz',
+      'pages/danList',
+      'pages/ranking',
+      'pages/newQuestion',
+      'pages/myQuestion',
+      'pages/quesDetail',
+      'pages/test',
+      'pages/consult'
+    ],
+    window: {
+      backgroundTextStyle: 'light',
+      navigationBarBackgroundColor: '#76d5ff',
+      navigationBarTitleText: '房产知识老司机',
+      navigationBarTextStyle: 'light'
+    }
+  }
+
+  globalData = {
+    userInfo: {
+      appid: 'wxba0881da5ae1eb51',
+      secret: 'a257e38a1d8f75b674fd41c1e856cea7',
+      js_code: '',
+      avatarUrl: '',
+      city: '',
+      country: '',
+      gender: 1,
+      language: 'zh_CN',
+      nickName: '',
+      province: ''
+    },
+    systemInfo: null,
+    loginData: {},
+    domain: 'https://dati.kelong.cn.com',
+    scaleList: ['初出茅庐', '倔强青铜']
+  }
+
+  data = {
+    toastTitle: '登录成功',
+    id: '',
+    token: '',
+    keys: []
+  }
+
+  methods = {
+    toast () {
+      const that = this
+      let promise = that.$invoke('toast', 'show', {
+        title: that.toastTitle
+      })
+      promise.then((d) => {
+        console.log('toast done')
+      })
+    }
+  }
+
+  onLaunch() {
+    const that = this
+    that.login()
+  }
+  login () {
+    const that = this
+    that.id = wepy.getStorageSync('id') || ''
+    that.token = wepy.getStorageSync('token') || ''
+    if (!(that.id && that.token)) {
+      that.toLogin()
+      that.getSystemInfo()
+    } else {
+      wepy.getStorageInfo({
+        success: (res) => {
+          that.keys = res.keys
+          for (let k in that.keys) {
+            let val = that.keys[k]
+            that.globalData.loginData[val] = wepy.getStorageSync(val)
+          }
+          that.getSystemInfo()
+          that.getUserInfo()
+        }
+      })
+    }
+  }
+  wxLogin () {
+    const that = this
+    return new Promise((resolve, reject) => {
+      wepy.login({
+        success: function (res) {
+          if (res.code) {
+            resolve('微信登录成功，开始获取用户信息')
+            that.globalData.userInfo.js_code = res.code
+          }
+        }
+      })
+    })
+  }
+  getUserInfo (cb) {
+    const that = this
+    return new Promise((resolve, reject) => {
+      wepy.getUserInfo({
+        lang: 'zh_CN',
+        success (res) {
+          resolve('获取用户信息成功，开始自定义登录')
+          for (let k in res.userInfo) {
+            that.globalData.userInfo[k] = res.userInfo[k]
+          }
+          cb && cb(res.userInfo)
+        }
+      })
+    })
+  }
+
+  async toLogin () {
+    const promises = [this.wxLogin(), this.getUserInfo()]
+    const that = this
+    wepy.showLoading({title: '加载中'})
+    for (const promise of promises) {
+      try {
+        await promise
+      } catch (err) {
+        console.err(err)
+      }
+    }
+    wepy.request({
+      url: `${this.globalData.domain}/api/dati/thirdLogin`,
+      data: that.globalData.userInfo,
+      method: 'POST',
+      success: function (res) {
+        wepy.hideLoading()
+        if (res.statusCode === 200) {
+          that.globalData.loginData = res.data.data
+          for (let k in res.data.data) {
+            wepy.setStorageSync(k, res.data.data[k])
+          }
+        } else {
+          that.$root.$parent.toast(res.data.msg, 1000)
+        }
+      }
+    })
+  }
+
+  getSystemInfo() {
+    const that = this
+    wepy.getSystemInfo({
+      success (res) {
+        that.globalData.systemInfo = res
+      }
+    })
+  }
+  getQuitNumber () {
+    const that = this
+    wepy.showLoading({title: '加载中'})
+    wepy.request({
+      url: `${that.globalData.domain}/api/user/quit`,
+      method: 'POST',
+      data: {
+        user_id: that.globalData.loginData.id,
+        token: that.globalData.loginData.token
+      },
+      success: function (res) {
+        wepy.hideLoading()
+        if (res.data.code) {
+          console.log(`玩家退出系统`)
+        } else {
+          that.$root.$parent.toast(res.data.msg, 1000)
+        }
+      }
+    })
+  }
+
+  toast (title, timer) {
+    wepy.showToast({
+      title: title || '提示信息',
+      icon: 'loading',
+      mask: true,
+      duration: timer || 1000
+    })
+  }
+
+  onLoad() {
+    const that = this
+    that.$broadcast('toast')
+  }
+
+  onHide(e) {
+    const that = this
+    console.log(`页面隐藏`)
+    that.getQuitNumber()
+    clearInterval(that.interval)
+  }
+  onUnload(e) {
+    const that = this
+    console.log(`页面卸载`)
+    that.getQuitNumber()
+    clearInterval(that.interval)
+  }
+}
+
+</script>

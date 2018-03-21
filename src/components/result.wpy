@@ -1,0 +1,83 @@
+<style lang="less">
+  @w: 748rpx;
+  .result-wrap {
+    width: 100%;
+    height: 100%;
+    display: flex;
+  }
+  .left, .right {
+    flex: 1;
+  }
+  .user-avatar {
+    width:160rpx;
+    height:160rpx;
+  }
+</style>
+<template>
+  <view>显示结果</view>
+  <div class="result-wrap">
+    <div class="left">
+      <div class="avatar">
+        <image class="user-avatar" wx:if="{{userInfo.avatarUrl}}" src="{{ userInfo.avatarUrl }}" alt="用户头像" background-size="cover" />
+      </div>
+      <div class="nick-name">
+        {{ userInfo.nickName }}
+      </div>
+      <div class="score">
+        {{ points }}
+      </div>
+    </div>
+    <div class="right">
+      <div class="avatar">
+        <image class="user-avatar" wx:if="{{oppoInfo.avatar}}" src="{{ oppoInfo.avatar }}" alt="用户头像" background-size="cover" />
+      </div>
+      <div class="nick-name">
+        {{ oppoInfo.nickname }}
+      </div>
+      <div class="score">
+        {{ oppoPoints }}
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+  import wepy from 'wepy'
+
+  export default class Users extends wepy.component {
+    data = {
+      userInfo: null,
+      primaryLen: '',
+      bigger: ''
+    }
+
+    props = {
+      points: {
+        type: Number,
+        default: 0
+      },
+      oppoPoints: {
+        type: Number,
+        default: 0
+      },
+      oppoInfo: {
+        type: String,
+        default: ''
+      }
+    }
+
+    watch = {
+      oppoInfo (newValue, oldValue) {
+        this.oppoInfo = JSON.parse(newValue)
+      }
+    }
+
+    methods = {
+    }
+
+    onLoad () {
+      const that = this
+      that.userInfo = that.$root.$parent.globalData.userInfo
+      console.log(that.$root)
+    }
+  }
+</script>

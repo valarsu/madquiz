@@ -1,0 +1,271 @@
+<style lang="less">
+  .container {
+    background: rgba(118, 213, 255, .25);
+  }
+  .rank-wrap {
+    width: 80%;
+    height: 70%;
+    overflow-y: auto;
+    position: absolute;
+    top: 23%;
+    z-index: 10;
+  }
+  .user-avatar {
+    width: 96rpx;
+    height: 96rpx;
+    border-radius: 50%;
+    flex: 1;
+    margin-top: 32rpx;
+    border: 4rpx solid #fff;
+    background: #25a4ff;
+  }
+  .my-title {
+    position: relative;
+    z-index: 20;
+    color: #fff;
+    font-size: 24rpx;
+    width: 80%;
+    padding: 0 48rpx;
+    box-sizing: border-box;
+    box-shadow: 0 0 4rpx 4rpx rgba(0, 0, 0, .1);
+    background-color: #25a4ff;
+    border-radius: 8rpx;
+    margin-top: 32rpx;
+  }
+  .my-top, .my-bottom {
+    display: flex;
+    justify-content: space-between;
+  }
+  .my-top {
+    height: 160rpx;
+    .avatar {
+      flex: 1;
+    }
+    .scale {
+      flex: 4;
+      font-size:48rpx;
+      line-height:160rpx;
+      text-align: center;
+    }
+  }
+  .my-bottom {
+    line-height: 64rpx;
+  }
+  .ques-order {
+    width: 48rpx;
+    height: 100%;
+    position: relative;
+    .back {
+      width: 196rpx;
+      height: 196rpx;
+      background: #76d5ff;
+      position: absolute;
+      left: -160rpx;
+      top: -98rpx;
+      transform: translate(-24rpx);
+      transform: rotate(45deg);
+    }
+    .index {
+      position: absolute;
+      top: 8rpx;
+      left: 0;
+      font-size: 32rpx;
+    }
+  }
+</style>
+<template>
+  <view class="container">
+    <view class="top-background">
+    </view>
+    <view class="my-title">
+      <view class="my-top">
+        <view class="avatar">
+          <image class="user-avatar" wx:if="{{userInfo.avatarUrl}}" src="{{ userInfo.avatarUrl }}" alt="用户头像" background-size="cover" />
+        </view>
+        <view class="scale">{{ scaleList[scaleIndex] }}</view>
+      </view>
+      <view class="my-bottom">
+        <view>题目数量：{{ numberInfo.question_number }}</view>
+        <view>通过审核：{{ numberInfo.pass_number }}</view>
+      </view>
+    </view>
+    <view class="rank-wrap">
+      <view wx:if="{{quesList.length === 0}}" class="rank-item" @tap="toDetail('noId')">
+        <view class="avatar-right">
+          <view class="avatar-top">
+            <view>房产知识老司机：</view>
+          </view>
+          <view class="avatar-bottom">
+            <view>
+              您还没有出过题目
+            </view>
+            <view class="rankNumber">
+              点此去出题
+            </view>
+          </view>
+        </view>
+      </view>
+      <block wx:for="{{quesList}}" wx:key="">
+        <view wx:if="{{quesList.length > 0}}" class="rank-item" @tap="toDetail({{item.id}})" style="background-color: {{rankColor[item.state * 1 + 1]}}"
+        >
+          <view class="ques-order">
+            <view class="back"></view>
+            <view class="index">{{index + 1}}</view>
+          </view>
+          <view class="avatar-right">
+            <view class="avatar-top">
+              <view>{{ item.question }}</view>
+            </view>
+            <view class="avatar-bottom">
+              <view>
+                {{ item.cate }}
+              </view>
+              <view class="rankNumber">
+                {{ stateList[(item.state * 1 + 1)] }}
+              </view>
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
+  </view>
+</template>
+<script>
+  import wepy from 'wepy'
+
+  export default class MyQuestion extends wepy.page {
+    config = {
+      navigationBarTitleText: '我的题目'
+    }
+
+    data = {
+      userInfo: {},
+      loginData: {},
+      domain: '',
+      rankList: [],
+      scaleList: [],
+      scaleIndex: 0,
+      numberInfo: {},
+      quesList: [],
+      stateList: ['未通过', '审核中', '通过'],
+      rankColor: ['#FF5252', '#00ACC1', '#FFB300']
+    }
+
+    components = {
+    }
+
+    watch = {
+      loginData (newValue, oldValue) {
+        const that = this
+        wepy.showLoading({title: '加载中'})
+        // 获取段位信息
+        wepy.request({
+          url: `${that.$parent.globalData.domain}/api/user/dan`,
+          method: 'POST',
+          data: {
+            user_id: newValue.id,
+            token: newValue.token
+          },
+          success: function (res) {
+            let item = res.data.data
+            if (res.data.code) {
+              that.scaleIndex = +item.userdaninfo.duan - 1
+              that.$apply()
+            } else {
+              that.$root.$parent.toast(res.data.msg, 1000)
+            }
+          }
+        })
+
+        // 获取题目信息
+        wepy.request({
+          url: `${that.$parent.globalData.domain}/api/factory/number`,
+          method: 'POST',
+          data: {
+            user_id: newValue.id,
+            token: newValue.token
+          },
+          success: function (res) {
+            let item = res.data.data
+            if (res.data.code) {
+              that.numberInfo = item
+              that.$apply()
+            } else {
+              that.$root.$parent.toast(res.data.msg, 1000)
+            }
+          }
+        })
+        // 获取题目列表
+        wepy.request({
+          url: `${that.$parent.globalData.domain}/api/factory/myquestion`,
+          method: 'POST',
+          data: {
+            user_id: newValue.id,
+            token: newValue.token
+          },
+          success: function (res) {
+            let item = res.data.data
+            wepy.hideLoading()
+            if (res.data.code) {
+              for (let k in item) {
+                item[k].forEach((val, key) => {
+                  that.quesList.push(val)
+                })
+              }
+              that.$apply()
+            } else {
+              that.$root.$parent.toast(res.data.msg, 1000)
+            }
+          }
+        })
+      }
+    }
+
+    computed = {
+    }
+
+    methods = {
+      toDetail: function (id) {
+        if (id === 'noId') {
+          wepy.navigateTo({
+            url: `newQuestion`
+          })
+          return
+        }
+        wepy.navigateTo({
+          url: `quesDetail?id=${id}`
+        })
+      }
+    }
+
+    events = {
+    }
+
+    getRankList () {
+      const that = this
+      wepy.showLoading({title: '加载中'})
+      wepy.request({
+        url: `${this.$parent.globalData.domain}/api/user/ranklist`,
+        method: 'POST',
+        success: function (res) {
+          let item = res.data.data
+          wepy.hideLoading()
+          if (res.data.code) {
+            that.rankList = item.allranklist
+            that.$apply()
+          } else {
+            that.$root.$parent.toast(res.data.msg, 1000)
+          }
+        }
+      })
+    }
+
+    onLoad() {
+      let that = this
+      that.getRankList()
+      that.userInfo = that.$parent.globalData.userInfo
+      that.loginData = that.$parent.globalData.loginData
+      that.scaleList = that.$parent.globalData.scaleList
+    }
+  }
+</script>

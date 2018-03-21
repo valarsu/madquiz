@@ -1,0 +1,114 @@
+<style lang="less">
+  button {
+    margin-bottom: 100rpx;
+  }
+</style>
+<template>
+<!--   <view class="container">
+  <button type="button" name="button" @tap="rotateAndScaleThenTranslate">点击动画</button>
+  <view animation="{{animationData}}" style="background:red;height:100rpx;width:100rpx"></view>
+</view> -->
+<countdown></countdown>
+
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import CountDown from '../components/countdown'
+  export default class Test extends wepy.page {
+    config = {
+      navigationBarTitleText: 'test'
+    }
+    data = {
+      animationData: {},
+      animation: {}
+    }
+    components = {
+      countdown: CountDown
+    }
+    onShow() {
+      const that = this
+      let animation = wepy.createAnimation({
+        duration: 1000,
+        timingFunction: 'ease'
+      })
+
+      that.animation = animation
+
+      animation.scale(2, 2).step()
+      animation.rotate(35).step()
+
+      that.animationData = animation.export()
+
+      setTimeout(() => {
+        console.log(1)
+        animation.translate(30).step()
+        that.animationData = animation.export()
+      }, 1000)
+    }
+
+    rotateAndScale() {
+      const that = this
+      that.animation.rotate(45).scale(2, 2).step()
+      that.animationData = that.animation.export()
+    }
+
+    rotateThenScale() {
+      const that = this
+      that.animation.rotate(45).step()
+      that.animation.scale(2, 2).step()
+      that.animationData = that.animation.export()
+    }
+
+    rotateAndScaleThenTranslate() {
+      const that = this
+      that.animation.rotate(45).scale(2, 2).step()
+      that.animation.translate(100, 100).step({ duration: 1000 })
+      that.animationData = that.animation.export()
+    }
+
+    testSocket() {
+      let socketOpen = false
+      let socketMsgQueue = []
+      wepy.connectSocket({
+        url: 'test.php'
+      })
+
+      wepy.onSocketOpen((res) => {
+        socketOpen = true
+        for (let i = 0; i < socketMsgQueue.length; i++) {
+          sendSocketMessage(socketMsgQueue[i])
+        }
+        socketMsgQueue = []
+        wepy.closeSocket()
+      })
+
+      function sendSocketMessage(msg) {
+        if (socketOpen) {
+          wepy.sendSocketMessage({
+            data: msg
+          })
+        } else {
+          socketMsgQueue.push(msg)
+        }
+      }
+
+      wepy.onSocketMessage((res) => {
+        console.log('收到服务器内容：' + res.data)
+      })
+
+      wepy.onSocketClose((res) => {
+        socketOpen = false
+        console.log('WebSocket 已关闭')
+      })
+    }
+
+    computed = {}
+
+    methods = {}
+
+    events = {}
+
+    onLoad() {}
+  }
+</script>

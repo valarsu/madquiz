@@ -1,0 +1,151 @@
+<style lang="less">
+  @w: 748rpx;
+  @box-w: 160rpx;
+  .count-down {
+    width: @box-w;
+    height: @box-w;
+    box-sizing: border-box;
+    position: absolute;
+    top: 62rpx;
+    border-radius: 50%;
+    z-index: 12;
+    line-height: @box-w;
+    text-align: center;
+    color: #303f9f;
+    font-size: 48rpx;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: transparent;
+    .number-wrap {
+      width: @box-w - 32;
+      height: @box-w - 32;
+      line-height: @box-w - 32;
+      content: '';
+      display: block;
+      position: absolute;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 16rpx 0 rgba(0, 0, 0, .36);
+    }
+  }
+  .count-wrap, .count-bottom {
+    width: @box-w;
+    height: @box-w;
+    position: absolute;
+    top: 62rpx;
+  }
+  .count-bottom {
+    background: #fff;
+    border-radius: @box-w;
+    box-shadow: 0 0 16rpx 0 rgba(0, 0, 0, .36);
+  }
+  .count-back {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 11;
+    overflow: hidden;
+    .count-before, .count-after {
+      box-sizing: border-box;
+      background: #76d5ff;
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: @box-w;
+      height: @box-w / 2;
+      border-radius: @box-w/2 @box-w/2 0 0;
+      transform-origin: @box-w/2 @box-w/2;
+    }
+    .count-before {
+      z-index: 12;
+      transform: rotate(270deg);
+      /* transition: all 0.1s; */
+    }
+    .count-after {
+      z-index: 13;
+      /* opacity: 0; */
+      transform: rotate(90deg);
+    }
+  }
+</style>
+<template>
+  <view class="count-bottom"></view>
+  <view class="count-wrap">
+    <view class="count-back" style="{{sectorStyle}}">
+      <view class="count-before" style="{{sectorBefore}}"></view>
+      <view class="count-after" style="{{sectorAfter}}"></view>
+    </view>
+  </view>
+
+  <view class="count-down">
+    <view class="number-wrap">
+      <view class="number">{{countDown}}</view>
+    </view>
+  </view>
+</template>
+<script>
+  import wepy from 'wepy'
+
+  export default class CountDown extends wepy.component {
+    data = {
+      userInfo: null,
+      // countDown: 10,
+      sectorStyle: null,
+      sectorBefore: null,
+      sectorAfter: null
+    }
+
+    props = {
+      countDown: {
+        type: Number,
+        default: 10,
+        twoWay: true
+      },
+      interval: {
+        type: Object,
+        default: null,
+        twoWay: true
+      }
+    }
+
+    methods = {
+    }
+
+    computed = {
+
+    }
+    calcDeg (deg) {
+      this.sectorBefore = `transform: rotate(${deg - 90}deg)`
+      if (deg < 180) {
+        this.sectorStyle = `width: 50%; left: 50%`
+        this.sectorAfter = `opacity: 0`
+      } else {
+        this.sectorStyle = `width: 100%; left: 0`
+        this.sectorAfter = `opacity: 1`
+      }
+    }
+    cdFunc (down, cb) {
+      const that = this
+      that.calcDeg(360)
+      that.interval = setInterval(() => {
+        if (down > 0) {
+          down--
+          that.calcDeg(down * 0.36)
+          that.countDown = Math.ceil(down / 100)
+          that.$apply()
+        } else {
+          if (cb) cb()
+          clearInterval(that.interval)
+        }
+      }, 10)
+    }
+    onLoad () {
+      const that = this
+      that.userInfo = that.$root.$parent.globalData.userInfo
+    }
+  }
+</script>

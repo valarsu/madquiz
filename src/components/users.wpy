@@ -1,0 +1,217 @@
+<style lang="less">
+  @w: 748rpx;
+
+  .left, .right {
+    position: absolute;
+    height: 100%;
+    width: 376rpx;
+    top: 0;
+    box-sizing: border-box;
+  }
+  .left {
+    left: 0;
+    padding: 32rpx 0 32rpx 16rpx;
+  }
+  .right {
+    right: 0;
+    padding: 32rpx 16rpx 32rpx 0;
+    background: #76d5ff;
+    .user-info {
+      flex-flow: row-reverse;
+      .user-score {
+        padding: 16rpx 16rpx 16rpx 96rpx;
+        left: 0;
+      }
+      .user-avatar {
+        border-right: 1px solid #fff;
+        border-left: none;
+      }
+    }
+    .user-name {
+      left: 0;
+      text-align: right;
+      padding: 0 32rpx 0 80rpx ;
+    }
+    .user-percent {
+      right: 16rpx;
+    }
+  }
+  .user-top {
+    position: relative;
+  }
+  .user-info {
+    display: flex;
+    font-size: 24rpx;
+    border-radius: 16rpx 0 0 16rpx;
+    .user-score {
+      box-sizing: border-box;
+      height: 96rpx;
+      width: @w / 2 - 128 - 16;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ff5252;
+      position: absolute;
+      top: 32rpx;
+      right: 0;
+      color: #fff;
+      text-align: left;
+      padding: 16rpx 96rpx 16rpx 16rpx;
+      font-size: 36rpx;
+      border-bottom: 2rpx solid #fff;
+      view {
+        transition: all .2s;
+      }
+    }
+    .user-avatar {
+      width: 128rpx;
+      height: 128rpx;
+      display: block;
+      box-sizing: border-box;
+      border-top: 2rpx solid #fff;
+      border-left: 2rpx solid #fff;
+      background: #fff;
+      text-align: center;
+    }
+  }
+  .user-name {
+    width: @w / 2 - 32 - 16 - 32 - 80;
+    height: 64rpx;
+    line-height: 64rpx;
+    text-align: left;
+    padding: 0 80rpx 0 32rpx ;
+    background: #ff5252;
+    position: absolute;
+    right: 0;
+    color: #fff;
+    border-bottom: 4rpx solid #fff !important;
+    font-size: 28rpx;
+    overflow: hidden;
+  }
+  .user-percent {
+    position: absolute;
+    bottom: 120rpx;
+    background: #76d5ff;
+    border-radius: 8rpx;
+    border: 4rpx solid #303f9f;
+    width: 24rpx;
+    height: 720rpx;
+    box-sizing: border-box;
+    display: flex;
+    align-items: flex-end;
+  }
+  .primary, .secondary {
+    background: #ff5252;
+    width: 100%;
+    height: 0;
+    position: absolute;
+    bottom: 0;
+    border-radius: 4rpx;
+  }
+  .primary {
+    transition: all 1s;
+  }
+  .secondary {
+    background: rgba(255, 255, 255, .3);
+  }
+</style>
+<template>
+  <view class="left">
+    <view class="user-top">
+      <view class="user-info">
+        <image class="user-avatar" wx:if="{{userInfo.avatarUrl}}" src="{{ userInfo.avatarUrl }}" alt="用户头像" background-size="cover" />
+        <view class="user-score">
+          <view style="{{biggerSelf}}">{{ points }}</view>
+        </view>
+      </view>
+      <view class="user-name">{{ userInfo.nickName }}</view>
+    </view>
+    <view class="user-percent">
+      <view class="secondary" style="{{primaryLenSelf}}"></view>
+      <view class="primary" style="{{primaryLenSelf}}"></view>
+    </view>
+  </view>
+  <view class="right">
+    <view class="user-top">
+      <view class="user-info">
+        <view wx:if="{{!oppoInfo.avatar}}" class="user-avatar">我是头像</view>
+        <image class="user-avatar" wx:if="{{oppoInfo.avatar}}" src="{{ oppoInfo.avatar }}" alt="用户头像" background-size="cover" />
+        <view class="user-score">
+          <view style="{{biggerOppo}}">{{ oppoPoints }}</view>
+        </view>
+      </view>
+      <view class="user-name">{{ oppoInfo.nickname }}</view>
+    </view>
+    <view class="user-percent">
+      <view class="secondary" style="{{primaryLenOppo}}"></view>
+      <view class="primary" style="{{primaryLenOppo}}"></view>
+    </view>
+  </view>
+</template>
+<script>
+  import wepy from 'wepy'
+
+  export default class Users extends wepy.component {
+    data = {
+      userInfo: null,
+      primaryLenSelf: '',
+      primaryLenOppo: '',
+      biggerSelf: '',
+      biggerOppo: ''
+    }
+
+    props = {
+      points: {
+        type: Number,
+        default: 0
+      },
+      oppoInfo: {
+        type: String,
+        default: 0
+      },
+      oppoPoints: {
+        type: Number,
+        default: 0
+      }
+    }
+
+    watch = {
+      points (newValue, oldValue) {
+        this.pointChange(newValue, oldValue, 'self')
+      },
+      oppoPoints (newValue, oldValue) {
+        this.pointChange(newValue, oldValue, 'oppo')
+      },
+      oppoInfo (newValue, oldValue) {
+        this.oppoInfo = JSON.parse(newValue)
+      }
+    }
+
+    pointChange (newValue, oldValue, isSelf) {
+      const that = this
+      console.log(`我的分数 value: ${oldValue} -> ${newValue}`)
+      let percent = `${newValue * 5 / 60}%`
+      if (isSelf === 'self') {
+        that.primaryLenSelf = `height: ${percent}`
+        that.biggerSelf = `transform: scale(1.5)`
+      } else {
+        that.primaryLenOppo = `height: ${percent}`
+        that.biggerOppo = `transform: scale(1.5)`
+      }
+      setTimeout(() => {
+        that.biggerSelf = `transform: scale(1)`
+        that.biggerOppo = `transform: scale(1)`
+        that.$apply()
+      }, 200)
+      that.$apply()
+    }
+
+    methods = {
+    }
+
+    onLoad () {
+      const that = this
+      that.userInfo = that.$root.$parent.globalData.userInfo
+    }
+  }
+</script>

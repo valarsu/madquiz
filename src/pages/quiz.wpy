@@ -1,0 +1,238 @@
+<style lang="less">
+  .userinfo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .userinfo-avatar {
+    width: 80rpx;
+    height: 80rpx;
+    border-radius: 50%;
+  }
+
+  .userinfo-nickname {
+    color: #aaa;
+  }
+  .container {
+    background: #76d5ff;
+  }
+  .container-match {
+    display: block
+  }
+</style>
+<template>
+  <view class="container container-match" wx:if="{{result === 0}}">
+    <match
+      :matchMsg="matchMsg"
+      :result="result"
+      :questions="questions"
+      :oppoInfo="oppoInfo"
+      :oppoAnswers="oppoAnswers"
+      :realTime="realTime"
+      :socketOpen.sync="socketOpen"
+      :socketMsgQueue.sync="socketMsgQueue"
+      :danId.sync="danId"
+    ></match>
+  </view>
+  <view class="container" wx:if="{{result === 1}}">
+    <users
+      :points.sync="points"
+      :oppoInfo.sync="oppoInfo"
+      :oppoPoints.sync="oppoPoints"
+    ></users>
+    <countdown
+      :countDown="countDown"
+      :interval.sync="interval"
+      :result.sync="result"
+    ></countdown>
+    <questions
+      :questions.sync="questions"
+      :current.sync="current"
+      :nextCon.sync="nextCon"
+      :option="option"
+      :order="order"
+      :result.sync="result"
+      :points="points"
+      :oppoPoints.sync="oppoPoints"
+      :socketOpen.sync="socketOpen"
+      :socketMsgQueue.sync="socketMsgQueue"
+      :oppoAnswers.sync="oppoAnswers"
+      :realTime.sync="realTime"
+      :interval.sync="interval"
+      :danId.sync="danId"
+      :countDown.sync="countDown"
+    ></questions>
+  </view>
+  <view class="container" wx:if="{{result === 2}}">
+    <result
+    :points.sync="points"
+    :oppoInfo.sync="oppoInfo"
+    :oppoPoints.sync="oppoPoints"
+    ></result>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import Users from '../components/users'
+  import Questions from '../components/questions'
+  import CountDown from '../components/countdown'
+  import Result from '../components/result'
+  import Match from '../components/match'
+
+  export default class Quiz extends wepy.page {
+    config = {
+      navigationBarTitleText: 'Battle',
+      navigationBarTextStyle: 'light',
+      navigationBarBackgroundColor: '#76d5ff'
+    }
+    components = {
+      users: Users,
+      questions: Questions,
+      countdown: CountDown,
+      result: Result,
+      match: Match
+    }
+
+    data = {
+      countDown: 10,
+      interval: null,
+      result: 0,
+      questions: [],
+      current: -1,
+      nextCon: '',
+      option: [false, false, false, false],
+      order: [false, false, false, false, false],
+      points: 0,
+      matchMsg: '等待中...',
+      socketOpen: false,
+      socketMsgQueue: [],
+      oppoInfo: '',
+      oppoPoints: 0,
+      oppoAnswers: '',
+      realTime: false,
+      danId: 0
+    }
+
+    watch = {
+      countDown (newValue, oldValue) {
+        const that = this
+        if (newValue < 1) {
+          clearInterval(that.interval)
+
+          let nexts = ''
+          switch (that.nextCon) {
+            case 'self':
+              nexts = 'oppo'
+              break
+            case 'oppo':
+              nexts = 'self'
+              break
+            default:
+              nexts = 'selfoppo'
+          }
+          that.$invoke('questions', 'nextQuestions', false, -1, -1, nexts)
+        }
+      },
+      current (newValue, oldValue) {
+        const that = this
+        clearInterval(that.interval)
+        that.$invoke('countdown', 'cdFunc', 1000, () => {
+          console.log('初始调用倒计时函数')
+        })
+        if (newValue === 5) {
+          that.result = 2
+        }
+      },
+      result (newValue, oldValue) {
+        const that = this
+        console.log(`result value: ${oldValue} -> ${newValue}`)
+        if (newValue === 1) {
+          clearInterval(that.interval)
+          that.current = 0
+        }
+      },
+      socketMsgQueue (newValue, oldValue) {
+        const that = this
+        console.log(`消息队列`)
+        console.log(oldValue)
+        console.log(newValue)
+        that.sendMessage()
+      }
+    }
+
+    computed = {
+      now () {
+        return +new Date()
+      }
+    }
+
+    methods = {
+    }
+
+    events = {
+    }
+
+    socketHandle (url, cb) {
+      const that = this
+      wepy.connectSocket({
+        url: url,
+        method: 'POST'
+      })
+
+      wepy.onSocketError((res) => {
+        console.log('websocket 打开失败')
+        console.log(res)
+      })
+
+      wepy.onSocketOpen((res) => {
+        that.socketOpen = true
+        this.sendMessage()
+      })
+
+      wepy.onSocketMessage((res) => {
+        cb && cb(res)
+      })
+    }
+    sendMessage () {
+      const that = this
+      that.socketMsgQueue.forEach((val, idx) => {
+        if (that.socketOpen) {
+          wepy.sendSocketMessage({
+            data: JSON.stringify(val),
+            success: (res) => {
+              that.socketMsgQueue.shift()
+            }
+          })
+        } else {
+          that.socketMsgQueue.push(val)
+        }
+      })
+    }
+
+    onLoad(e) {
+      let that = this
+      clearInterval(that.interval)
+      that.$broadcast('socketHandle')
+      that.$broadcast('sendMessage')
+      that.danId = e.id
+      that.socketHandle(`wss://dati.kelong.cn.com/wss/`, (res) => {})
+      wepy.onSocketMessage((res) => {
+        console.log(`res 响应`)
+        console.log(res)
+      })
+    }
+
+    onHide(e) {
+      const that = this
+      clearInterval(that.interval)
+      that.$invoke('questions', 'quitQuestion')
+    }
+    onUnload(e) {
+      const that = this
+      clearInterval(that.interval)
+      that.$invoke('questions', 'quitQuestion')
+    }
+  }
+</script>

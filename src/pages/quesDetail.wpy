@@ -1,0 +1,139 @@
+<style lang="less">
+  .container {
+    background: rgb(118, 213, 255);
+    height: auto;
+    padding-bottom: 48rpx;
+    display: flex;
+    justify-content: center;
+    color: #fff;
+    padding-top: 48rpx;
+
+  }
+  .ques-options {
+    width: 80%;
+    margin: 0 auto;
+  }
+  .ques-content {
+    font-size: 40rpx !important;
+  }
+  .rank-item {
+    width: 80%;
+    height: auto;
+    margin: 0 auto !important;
+    .avatar-top, .avatar-bottom {
+      padding: 20rpx 0;
+    }
+    .avatar-top {
+      font-size: 32rpx;
+    }
+  }
+</style>
+<template>
+  <view class="container">
+    <view class="h1">
+      题目详情
+    </view>
+    <view class="rank-item">
+      <view class="avatar-right">
+        <view class="avatar-top">
+          <view>题干：{{ question.question }}</view>
+        </view>
+        <view class="avatar-bottom">
+          <view>
+            题目类型：{{ question.cate }}
+          </view>
+          <view class="rankNumber">
+            审核状态：{{ stateList[question.state * 1 + 1] }}
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class="ques-options">
+      <block
+        wx:for="{{optionList}}"
+        wx:key="{{index}}"
+      >
+        <view class="button {{ abcd[index] === question.answer ? 'true' : 'false' }}">{{ abcd[index] }}、{{ item.content }}</view>
+      </block>
+    </view>
+  </view>
+</template>
+<script>
+  import wepy from 'wepy'
+
+  export default class QuesDetail extends wepy.page {
+    config = {
+      navigationBarTitleText: '题目详情'
+    }
+
+    data = {
+      questionId: 0,
+      quesList: {},
+      question: {},
+      loginData: {},
+      optionList: [],
+      stateList: ['未通过', '审核中', '通过'],
+      abcd: ['A', 'B', 'C', 'D']
+    }
+
+    watch = {
+      loginData (newValue, oldValue) {
+        const that = this
+        wepy.showLoading({title: '加载中'})
+
+        wepy.request({
+          url: `${that.$parent.globalData.domain}/api/factory/myquestion`,
+          method: 'POST',
+          data: {
+            user_id: newValue.id,
+            token: newValue.token
+          },
+          success: function (res) {
+            wepy.hideLoading()
+            if (res.data.code) {
+              that.quesList = res.data.data
+
+              for (let k in that.quesList) {
+                let item = that.quesList[k]
+                item.forEach((val, idx) => {
+                  if (+val.id === +that.questionId) {
+                    that.question = val
+                    return false
+                  }
+                })
+              }
+              for (let k in that.question) {
+                let val = that.question[k]
+                if (k.indexOf('choice') > -1 && val) {
+                  that.optionList.push({
+                    content: val
+                  })
+                }
+              }
+
+              that.$apply()
+            } else {
+              that.$root.$parent.toast(res.data.msg, 1000)
+            }
+          }
+        })
+      }
+    }
+
+    computed = {
+    }
+
+    methods = {
+
+    }
+
+    events = {
+    }
+
+    onLoad(e) {
+      let that = this
+      that.loginData = that.$parent.globalData.loginData
+      that.questionId = e.id
+    }
+  }
+</script>
